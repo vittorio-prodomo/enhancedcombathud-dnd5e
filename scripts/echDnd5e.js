@@ -871,6 +871,31 @@ export function initConfig() {
                 return tooltipData;
             }
 
+            async _onPreLeftClick(event) {
+                // BG3-style stacking spells: choose the cast level FIRST (dnd5e's own dialog) so the
+                // picker knows the exact projectile count, then cast without a second dialog. Anything
+                // else falls through to Core's default pre-click flow.
+                const isStacking = this.item?.getFlag?.("enhancedcombathud", "stackTargets") === true
+                    && this.useTargetPicker && (this.targets > 0);
+                if (!isStacking) return super._onPreLeftClick(event);
+                const activity = this.activity;
+                // Resolve level/slot via dnd5e's usage dialog (mirrors Activity#use, but no cast yet).
+                const usageConfig = activity._prepareUsageConfig({ event, legacy: false });
+                const dialogCls = activity.metadata?.usage?.dialog;
+                if (dialogCls && activity._requiresConfigurationDialog(usageConfig)) {
+                    try { await dialogCls.create(activity, usageConfig, {}); }
+                    catch (e) { return; } // level dialog cancelled
+                }
+                // Exact projectile count at the chosen level = base count + upcast delta.
+                const count = (Number(this.targets) || 1) + (Number(usageConfig.scaling) || 0);
+                // On-canvas stacking picker at the exact count (Core exposes it via its module API).
+                const picked = await game.modules.get("enhancedcombathud")?.api?.runStackingPicker?.(
+                    { token: this.token, count, ranges: this.ranges, item: this.item });
+                if (!picked) return; // picker cancelled
+                // Cast with the pre-chosen config; item.use forwards it to activity.use (no re-prompt).
+                return this.item.use(usageConfig, { configure: false, event }, { event });
+            }
+
             async _onLeftClick(event) {
                 // ui.ARGON.interceptNextDialog(event.currentTarget);
                 // const used = await this.activity.use({event, legacy: false}, {event});
