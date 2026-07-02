@@ -19,7 +19,7 @@
   ],
   "scripts": [],
   "esmodules": [
-    "index.js"
+    "dev-loader.mjs"
   ],
   "styles": [
     "styles/module.css"
