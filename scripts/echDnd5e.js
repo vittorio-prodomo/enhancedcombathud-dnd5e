@@ -1087,11 +1087,18 @@ export function initConfig() {
                         buttons: this.items.filter((item) => item.system?.method === "atwill").map((item) => new DND5eItemButton({ item })),
                         uses: { max: Infinity, value: Infinity },
                     },
-                    {
-                        label: "DND5E.SpellPrepInnate",
-                        buttons: this.items.filter((item) => item.system?.method === "innate").map((item) => new DND5eItemButton({ item })),
-                        uses: { max: Infinity, value: Infinity },
-                    },
+                    // One section per innate spell: each innate-method spell carries its own
+                    // independent uses pool (e.g. 2024 lineage 1/long-rest free casts), so a
+                    // single shared section counter cannot represent them. Mirrors the
+                    // itemsWithSpells (cachedFor) pattern above. Pool-less innate spells are
+                    // effectively at-will and keep the infinity marker.
+                    ...this.items.filter((item) => item.system?.method === "innate").map((item) => ({
+                        label: item.name,
+                        buttons: [new DND5eItemButton({ item })],
+                        uses: () => (item.system?.uses?.max
+                            ? { max: item.system.uses.max, value: item.system.uses.value }
+                            : { max: Infinity, value: Infinity }),
+                    })),
                     {
                         label: Object.values(spellLevels)[0],
                         buttons: this.items.filter((item) => item.system?.level == 0).map((item) => new DND5eItemButton({ item })),
