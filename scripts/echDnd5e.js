@@ -3,6 +3,22 @@ import { getSetting } from "./settings.js";
 
 const ECHItems = {};
 
+// Custom section titles for innate free-cast spells in the Argon HUD spellbook.
+// Each innate-method spell (2024 species/feat 1-per-long-rest casts) gets its own
+// accordion section (see prePrepareSpells); by default the section is titled with
+// the spell name. Add an entry here to give it a more descriptive title (e.g. the
+// granting feature). Keyed by spell identifier (locale-independent) with a
+// display-name fallback, so a Babele translation of the spell can't break the
+// match. Unmapped innate spells keep the spell name.
+const INNATE_SECTION_LABELS = {
+    longstrider: "Wood Elf Lineage Lv.3",
+};
+function innateSectionLabel(item) {
+    return INNATE_SECTION_LABELS[item.system?.identifier]
+        ?? INNATE_SECTION_LABELS[item.name?.toLowerCase()]
+        ?? item.name;
+}
+
 let explodeItemActivities;
 export function setExplodeItemActivities() {
     explodeItemActivities = getSetting("explodeItemActivities");
@@ -1093,7 +1109,7 @@ export function initConfig() {
                     // itemsWithSpells (cachedFor) pattern above. Pool-less innate spells are
                     // effectively at-will and keep the infinity marker.
                     ...this.items.filter((item) => item.system?.method === "innate").map((item) => ({
-                        label: item.name,
+                        label: innateSectionLabel(item),
                         buttons: [new DND5eItemButton({ item })],
                         uses: () => (item.system?.uses?.max
                             ? { max: item.system.uses.max, value: item.system.uses.value }
