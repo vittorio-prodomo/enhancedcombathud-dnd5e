@@ -1298,6 +1298,10 @@ export function initConfig() {
                         primary: actions[2]?.uuid ?? null,
                         secondary: bonus[2]?.uuid ?? null,
                     },
+                    4: {
+                        primary: actions[3]?.uuid ?? null,
+                        secondary: bonus[3]?.uuid ?? null,
+                    },
                 };
             }
 
