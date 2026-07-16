@@ -857,7 +857,7 @@ export function initConfig() {
 
             get targets() {
                 const activity = this.activity;
-                const validTargets = ["creature", "ally", "enemy"];
+                const validTargets = ["creature", "ally", "enemy", "willing"];
                 const actionType = activity.actionType;
                 const affects = activity.target?.affects ?? {};
                 const targetType = affects.type;
