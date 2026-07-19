@@ -1124,7 +1124,9 @@ export function initConfig() {
                         label: "DND5E.PactMagic",
                         buttons: this.items.filter((item) => item.system?.method === "pact").map((item) => new DND5eItemButton({ item })),
                         uses: () => {
-                            return this.actor.system.spells.pact;
+                            // Guard combat-teardown null actor (T48a); {} makes
+                            // AccordionPanelCategory._setUses bail on its !Number.isNumeric check.
+                            return this.actor?.system?.spells?.pact ?? {};
                         },
                     },
                 ];
@@ -1135,7 +1137,9 @@ export function initConfig() {
                         label,
                         buttons: levelSpells.map((item) => new DND5eItemButton({ item })),
                         uses: () => {
-                            return this.actor.system.spells[`spell${level}`];
+                            // Guard combat-teardown null actor (T48a); {} makes
+                            // AccordionPanelCategory._setUses bail on its !Number.isNumeric check.
+                            return this.actor?.system?.spells?.[`spell${level}`] ?? {};
                         },
                     });
                 }
