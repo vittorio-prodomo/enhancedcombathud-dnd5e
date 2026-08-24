@@ -1,5 +1,6 @@
 import { MODULE_ID } from "./main.js";
 import { getSetting } from "./settings.js";
+import { normalizeTargetCount } from "./targetCount.mjs";
 
 const ECHItems = {};
 
@@ -862,11 +863,14 @@ export function initConfig() {
                 const affects = activity.target?.affects ?? {};
                 const targetType = affects.type;
                 if (!activity.target?.template?.units && validTargets.includes(targetType)) {
-                    return affects.count ?? 1;
+                    // ⚠️ FORK PATCH (queue T137): was `affects.count ?? 1` — DDB-imported spells
+                    // routinely carry count as the EMPTY STRING (Charm Person), which `??` passes
+                    // through, so the caller read a falsy target count and skipped the picker.
+                    return normalizeTargetCount(affects.count);
                 } else if (validTargets.includes(targetType) && affects.count) {
                     return affects.count;
                 } else if (actionType === "mwak" || actionType === "rwak" || actionType === "msak" || actionType === "rsak") {
-                    return affects.count || 1;
+                    return normalizeTargetCount(affects.count);
                 }
                 return null;
             }
