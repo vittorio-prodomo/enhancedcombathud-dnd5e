@@ -1,6 +1,6 @@
 import { MODULE_ID } from "./main.js";
 import { getSetting } from "./settings.js";
-import { normalizeTargetCount } from "./targetCount.mjs";
+import { activityTargetCount, activityRanges, isPreparationChange, resolveOriginSheet } from "./sheetUseGate.mjs";
 
 const ECHItems = {};
 
@@ -27,9 +27,61 @@ export function setExplodeItemActivities() {
 
 export function initConfig() {
 
-    Hooks.on("updateItem", (item) => {
-        if(item.parent === ui.ARGON._actor && ui.ARGON.rendered) ui.ARGON.components.portrait.refresh()
+    Hooks.on("updateItem", (item, changes) => {
+        if(item.parent !== ui.ARGON._actor || !ui.ARGON.rendered) return;
+        ui.ARGON.components.portrait.refresh();
+        // ⚠️ FORK PATCH (queue T142): preparing/unpreparing a spell adds/removes HUD buttons,
+        // which the portrait refresh above never rebuilds — Core's debounced full refresh does,
+        // and the T62 persisted hudState keeps the accordion arrangement across it.
+        if (isPreparationChange(item, changes)) ui.ARGON.refresh();
     })
+
+    // ⚠️ FORK PATCH (queue T138/T139): casting/attacking from a character SHEET behaves like
+    // an Argon HUD click — cancel the use, close the sheet, run the target picker (it does the
+    // pre-target wipe itself under `rangepickerclear`), then re-invoke the use with a marker.
+    // Sheet-origin is detected from the click event's DOM position, so programmatic uses
+    // (CPR/GPS/midi automation, macros, chat cards) and HUD clicks are never intercepted.
+    const sheetByElement = (el) =>
+        foundry.applications.instances.get(el.id) ?? ui.windows?.[el.dataset?.appid] ?? null;
+
+    Hooks.on("dnd5e.preUseActivity", (activity, usageConfig, dialogConfig, messageConfig) => {
+        try {
+            if (usageConfig?.enhancedcombathud?.sheetPickerDone) return;
+            if (!game.settings.get("enhancedcombathud", "rangepicker")) return;
+            const item = activity?.item;
+            const actor = item?.actor;
+            if (!actor) return;
+            if (item.getFlag?.("enhancedcombathud", "skipTargetPicker")) return;
+            const sheet = resolveOriginSheet(usageConfig?.event, actor, {byElement: sheetByElement});
+            if (!sheet) return;
+            const targets = activityTargetCount(activity);
+            if (!(targets > 0)) return;
+            const token = (ui.ARGON?._actor === actor ? ui.ARGON._token : null)
+                ?? actor.getActiveTokens?.(true)?.[0] ?? null;
+            if (!token) return;
+            runSheetPickerFlow({activity, usageConfig, dialogConfig, messageConfig, sheet, token, targets});
+            return false;
+        } catch (e) {
+            console.error("enhancedcombathud-dnd5e | sheet-cast target picker gate failed", e);
+        }
+    });
+
+    async function runSheetPickerFlow({activity, usageConfig, dialogConfig, messageConfig, sheet, token, targets}) {
+        await sheet.close();
+        const picked = await game.modules.get("enhancedcombathud")?.api?.runTargetPicker?.({
+            token,
+            targets,
+            ranges: activityRanges(activity, canvas?.scene?.grid?.distance),
+            item: activity.item,
+        });
+        if (!picked) {
+            // Cancelled = no cast happened; hand the sheet back where the user left it.
+            sheet.render(true);
+            return;
+        }
+        foundry.utils.setProperty(usageConfig, "enhancedcombathud.sheetPickerDone", true);
+        await activity.use(usageConfig, dialogConfig, messageConfig);
+    }
 
     Hooks.on("argonInit", (CoreHUD) => {
         if (game.system.id !== "dnd5e") return;
@@ -843,12 +895,7 @@ export function initConfig() {
             }
 
             get ranges() {
-                const activity = this.activity;
-                const touchRange = activity.range.units == "touch" ? canvas?.scene?.grid?.distance : null;
-                return {
-                    normal: activity?.range?.value ?? touchRange,
-                    long: activity?.range?.long ?? null,
-                };
+                return activityRanges(this.activity, canvas?.scene?.grid?.distance);
             }
 
             get label() {
@@ -857,22 +904,10 @@ export function initConfig() {
             }
 
             get targets() {
-                const activity = this.activity;
-                const validTargets = ["creature", "ally", "enemy", "willing"];
-                const actionType = activity.actionType;
-                const affects = activity.target?.affects ?? {};
-                const targetType = affects.type;
-                if (!activity.target?.template?.units && validTargets.includes(targetType)) {
-                    // ⚠️ FORK PATCH (queue T137): was `affects.count ?? 1` — DDB-imported spells
-                    // routinely carry count as the EMPTY STRING (Charm Person), which `??` passes
-                    // through, so the caller read a falsy target count and skipped the picker.
-                    return normalizeTargetCount(affects.count);
-                } else if (validTargets.includes(targetType) && affects.count) {
-                    return affects.count;
-                } else if (actionType === "mwak" || actionType === "rwak" || actionType === "msak" || actionType === "rsak") {
-                    return normalizeTargetCount(affects.count);
-                }
-                return null;
+                // ⚠️ FORK PATCH (queue T137 + T138): the getter logic (empty-string count
+                // normalization included) moved to sheetUseGate.mjs so the sheet-cast
+                // intercept and the HUD share one implementation.
+                return activityTargetCount(this.activity);
             }
 
             get visible() {
