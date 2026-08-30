@@ -642,7 +642,7 @@ export function initConfig() {
                 }
 
                 const barItems = this.actor.items.filter((item) => CoreHUD.DND5E.mainBarFeatures.includes(item.system.type?.value) && checkActivationType(item, actionTypes.action));
-                buttons.push(...condenseItemButtons(barItems));
+                buttons.push(...condenseItemButtons(expandActivities(barItems, actionTypes.action)));
 
                 return buttons.filter((button) => button.hasContents || button.items == undefined || button.items.length);
             }
@@ -689,7 +689,7 @@ export function initConfig() {
                 }
 
                 const barItems = this.actor.items.filter((item) => CoreHUD.DND5E.mainBarFeatures.includes(item.system.type?.value) && checkActivationType(item, actionTypes.bonus));
-                buttons.push(...condenseItemButtons(barItems));
+                buttons.push(...condenseItemButtons(expandActivities(barItems, actionTypes.bonus)));
 
                 return buttons;
             }
@@ -737,7 +737,7 @@ export function initConfig() {
                 }
 
                 const barItems = this.actor.items.filter((item) => CoreHUD.DND5E.mainBarFeatures.includes(item.system.type?.value) && checkActivationType(item, actionTypes.reaction));
-                buttons.push(...condenseItemButtons(barItems));
+                buttons.push(...condenseItemButtons(expandActivities(barItems, actionTypes.reaction)));
 
                 return buttons;
             }
@@ -785,7 +785,7 @@ export function initConfig() {
                 }
 
                 const barItems = this.actor.items.filter((item) => CoreHUD.DND5E.mainBarFeatures.includes(item.system.type?.value) && checkActivationType(item, actionTypes.free));
-                buttons.push(...condenseItemButtons(barItems));
+                buttons.push(...condenseItemButtons(expandActivities(barItems, actionTypes.free)));
 
                 return buttons;
             }
@@ -900,6 +900,7 @@ export function initConfig() {
 
             get label() {
                 if(!this.isActivity) return super.label;
+                if (this.activity.name?.includes(this.item.name)) return this.activity.name;
                 return this.activity.name + ` (${this.item.name})`;
             }
 
