@@ -900,8 +900,16 @@ export function initConfig() {
 
             get label() {
                 if(!this.isActivity) return super.label;
-                if (this.activity.name?.includes(this.item.name)) return this.activity.name;
-                return this.activity.name + ` (${this.item.name})`;
+                // The " (Item Name)" suffix exists to disambiguate generic activity
+                // names ("Healing", "Attack"). Skip it when the activity name already
+                // identifies its item — it contains the item name, or shares a
+                // significant word with it ("Summon Companion" on "Primal Companion").
+                const activityName = this.activity.name ?? "";
+                if (activityName.includes(this.item.name)) return activityName;
+                const itemWords = new Set(this.item.name.toLowerCase().split(/\s+/).filter(w => w.length >= 4));
+                const shared = activityName.toLowerCase().split(/\s+/).some(w => w.length >= 4 && itemWords.has(w));
+                if (shared) return activityName;
+                return activityName + ` (${this.item.name})`;
             }
 
             get targets() {
@@ -923,6 +931,16 @@ export function initConfig() {
 
             async getTooltipData() {
                 const tooltipData = this.isActivity ? await getTooltipDetails({...this.item, ...this.activity, name: this.label}) : await getTooltipDetails(this.item);
+                // Per-activity tooltip override (fork, 2026-08-30): an item may carry
+                // `flags.enhancedcombathud-dnd5e.activityTooltips[<activity type>]`
+                // with concise HTML for that activity's button, replacing the whole-item
+                // description dump (the importer stamps these on Primal Companion).
+                if (this.isActivity) {
+                    const custom = this.item?.getFlag?.("enhancedcombathud-dnd5e", "activityTooltips")?.[this.activity?.type];
+                    if (custom) {
+                        tooltipData.description = await foundry.applications.ux.TextEditor.implementation.enrichHTML(custom, { async: true, relativeTo: this.item });
+                    }
+                }
                 tooltipData.propertiesLabel = "enhancedcombathud-dnd5e.tooltip.properties.name";
                 return tooltipData;
             }
