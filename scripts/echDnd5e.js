@@ -906,8 +906,11 @@ export function initConfig() {
                 // significant word with it ("Summon Companion" on "Primal Companion").
                 const activityName = this.activity.name ?? "";
                 if (activityName.includes(this.item.name)) return activityName;
-                const itemWords = new Set(this.item.name.toLowerCase().split(/\s+/).filter(w => w.length >= 4));
-                const shared = activityName.toLowerCase().split(/\s+/).some(w => w.length >= 4 && itemWords.has(w));
+                // A shared STEM counts too ("Spend Luck Point" on "Lucky", queue T212 follow-up):
+                // one word being a prefix of the other, both at least 4 letters.
+                const itemWords = this.item.name.toLowerCase().split(/\s+/).filter(w => w.length >= 4);
+                const shared = activityName.toLowerCase().split(/\s+/).some(w => w.length >= 4
+                    && itemWords.some(iw => iw === w || iw.startsWith(w) || w.startsWith(iw)));
                 if (shared) return activityName;
                 return activityName + ` (${this.item.name})`;
             }
