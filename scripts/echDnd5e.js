@@ -353,23 +353,48 @@ export function initConfig() {
                 super(...args);
             }
 
+            // Kept for compatibility (Argon core falls back to it when a system
+            // layer implements no `details`); the HUD itself renders `details`.
             get description() {
+                return this.details.join(" \u00b7 ");
+            }
+
+            // Corner badge: character level for a PC, challenge rating for an NPC.
+            get level() {
+                const { type, system } = this.actor;
+                if (type === "npc") {
+                    const cr = system.details.cr >= 1 || system.details.cr <= 0 ? system.details.cr : `1/${1 / system.details.cr}`;
+                    return `CR ${cr}`;
+                }
+                if (type === "character") {
+                    return `${game.i18n.localize("DND5E.AbbreviationLevel")} ${system.details.level}`;
+                }
+                return null;
+            }
+
+            // One short line each, under the character name — the level lives in
+            // the corner badge and the species is no longer parenthesised.
+            get details() {
                 const { type, system } = this.actor;
                 const actor = this.actor;
-                const isNPC = type === "npc";
-                const isPC = type === "character";
-                if (isNPC) {
-                    const creatureType = game.i18n.localize(CONFIG.DND5E.creatureTypes[actor.system.details.type.value]?.label ?? actor.system.details.type.custom);
-                    const cr = system.details.cr >= 1 || system.details.cr <= 0 ? system.details.cr : `1/${1 / system.details.cr}`;
-                    return `CR ${cr} ${creatureType}`;
-                } else if (isPC) {
-                    const classes = Object.values(actor.classes)
-                        .map((c) => c.name)
-                        .join(" / ");
-                    return `Level ${system.details.level} ${classes} (${system.details.race})`;
-                } else {
-                    return "";
+                if (type === "npc") {
+                    const creatureType = game.i18n.localize(CONFIG.DND5E.creatureTypes[system.details.type.value]?.label ?? system.details.type.custom);
+                    return [creatureType, system.details.type.subtype].filter((line) => !!line);
                 }
+                if (type === "character") {
+                    const classes = Object.values(actor.classes);
+                    // Per-class levels only matter when multiclassed; the badge
+                    // already carries the character level for a single class.
+                    const classLine = classes
+                        .map((c) => (classes.length > 1 ? `${c.name} ${c.system.levels}` : c.name))
+                        .join(" / ");
+                    // `system.details.race` is the species Item on a modern sheet,
+                    // a plain string on older data.
+                    const race = system.details.race;
+                    const species = (race && typeof race === "object" ? race.name : race) || "";
+                    return [classLine, species].filter((line) => !!line);
+                }
+                return [];
             }
 
             get isDead() {
