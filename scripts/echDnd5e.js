@@ -1,6 +1,7 @@
 import { MODULE_ID } from "./main.js";
 import { getSetting } from "./settings.js";
 import { activityTargetCount, activityRanges, isPreparationChange, resolveOriginSheet } from "./sheetUseGate.mjs";
+import { isMainBarItem } from "./mainBarItems.mjs";
 
 const ECHItems = {};
 
@@ -165,14 +166,18 @@ export function initConfig() {
         };
 
         const mainBarFeatures = [];
+        // T212 follow-up: feat SUBTYPES whose limited-use items sit on the bar (see mainBarItems.mjs).
+        const limitedUseFeatSubtypes = [];
 
         if (game.settings.get(MODULE_ID, "showWeaponsItems")) itemTypes.consumable.unshift("weapon");
         if (game.settings.get(MODULE_ID, "showClassActions")) mainBarFeatures.push("class");
+        if (game.settings.get(MODULE_ID, "showLimitedUseFeats")) limitedUseFeatSubtypes.push("origin");
 
         CoreHUD.DND5E = {
             actionTypes,
             itemTypes,
             mainBarFeatures,
+            limitedUseFeatSubtypes,
             ECHItems,
         };
 
@@ -625,9 +630,9 @@ export function initConfig() {
             }
 
             async _getButtons() {
-                const spellItems = this.actor.items.filter((item) => itemTypes.spell.includes(item.type) && actionTypes.action.includes(getActivationType(item)) && !CoreHUD.DND5E.mainBarFeatures.includes(item.system.type?.value));
-                const featItems = expandActivities(this.actor.items.filter((item) => itemTypes.feat.includes(item.type) && checkActivationType(item, actionTypes.action) && !CoreHUD.DND5E.mainBarFeatures.includes(item.system.type?.value)), actionTypes.action);
-                const consumableItems = expandActivities(this.actor.items.filter((item) => itemTypes.consumable.includes(item.type) && checkActivationType(item, actionTypes.action) && !CoreHUD.DND5E.mainBarFeatures.includes(item.system.type?.value)), actionTypes.action);
+                const spellItems = this.actor.items.filter((item) => itemTypes.spell.includes(item.type) && actionTypes.action.includes(getActivationType(item)) && !isMainBarItem(item, CoreHUD.DND5E));
+                const featItems = expandActivities(this.actor.items.filter((item) => itemTypes.feat.includes(item.type) && checkActivationType(item, actionTypes.action) && !isMainBarItem(item, CoreHUD.DND5E)), actionTypes.action);
+                const consumableItems = expandActivities(this.actor.items.filter((item) => itemTypes.consumable.includes(item.type) && checkActivationType(item, actionTypes.action) && !isMainBarItem(item, CoreHUD.DND5E)), actionTypes.action);
 
                 const spellButton = !spellItems.length ? [] : [new DND5eButtonPanelButton({ type: "spell", items: spellItems, color: 0 })].filter((button) => button.hasContents);
 
@@ -641,7 +646,7 @@ export function initConfig() {
                     buttons.push(...[new DND5eItemButton({ item: null, isWeaponSet: true, isPrimary: true }), ...spellButton, new DND5eButtonPanelButton({ type: "feat", items: featItems, color: 0 }), new DND5eButtonPanelButton({ type: "consumable", items: consumableItems, color: 0 })]);
                 }
 
-                const barItems = this.actor.items.filter((item) => CoreHUD.DND5E.mainBarFeatures.includes(item.system.type?.value) && checkActivationType(item, actionTypes.action));
+                const barItems = this.actor.items.filter((item) => isMainBarItem(item, CoreHUD.DND5E) && checkActivationType(item, actionTypes.action));
                 buttons.push(...condenseItemButtons(expandActivities(barItems, actionTypes.action)));
 
                 return buttons.filter((button) => button.hasContents || button.items == undefined || button.items.length);
@@ -673,7 +678,7 @@ export function initConfig() {
             async _getButtons() {
                 const buttons = [new DND5eItemButton({ item: null, isWeaponSet: true, isPrimary: false })];
                 for (const [type, types] of Object.entries(itemTypes)) {
-                    const items = this.actor.items.filter((item) => types.includes(item.type) && checkActivationType(item, actionTypes.bonus) && !CoreHUD.DND5E.mainBarFeatures.includes(item.system.type?.value));
+                    const items = this.actor.items.filter((item) => types.includes(item.type) && checkActivationType(item, actionTypes.bonus) && !isMainBarItem(item, CoreHUD.DND5E));
                     if (!items.length) continue;
                     if (type === "spell") {
                         const itemsWithCorrectActionTypeAsMainActivity = items.filter(item => actionTypes.bonus.includes(getActivationType(item)));
@@ -688,7 +693,7 @@ export function initConfig() {
                     if (button.hasContents) buttons.push(button);
                 }
 
-                const barItems = this.actor.items.filter((item) => CoreHUD.DND5E.mainBarFeatures.includes(item.system.type?.value) && checkActivationType(item, actionTypes.bonus));
+                const barItems = this.actor.items.filter((item) => isMainBarItem(item, CoreHUD.DND5E) && checkActivationType(item, actionTypes.bonus));
                 buttons.push(...condenseItemButtons(expandActivities(barItems, actionTypes.bonus)));
 
                 return buttons;
@@ -721,7 +726,7 @@ export function initConfig() {
                 const buttons = [new DND5eItemButton({ item: null, isWeaponSet: true, isPrimary: true })];
                 //buttons.push(new DND5eEquipmentButton({slot: 1}));
                 for (const [type, types] of Object.entries(itemTypes)) {
-                    const items = this.actor.items.filter((item) => types.includes(item.type) && checkActivationType(item, actionTypes.reaction) && !CoreHUD.DND5E.mainBarFeatures.includes(item.system.type?.value));
+                    const items = this.actor.items.filter((item) => types.includes(item.type) && checkActivationType(item, actionTypes.reaction) && !isMainBarItem(item, CoreHUD.DND5E));
                     if (!items.length) continue;
                     if (type === "spell") {
                         const itemsWithCorrectActionTypeAsMainActivity = items.filter(item => actionTypes.reaction.includes(getActivationType(item)));
@@ -736,7 +741,7 @@ export function initConfig() {
                     if (button.hasContents) buttons.push(button);
                 }
 
-                const barItems = this.actor.items.filter((item) => CoreHUD.DND5E.mainBarFeatures.includes(item.system.type?.value) && checkActivationType(item, actionTypes.reaction));
+                const barItems = this.actor.items.filter((item) => isMainBarItem(item, CoreHUD.DND5E) && checkActivationType(item, actionTypes.reaction));
                 buttons.push(...condenseItemButtons(expandActivities(barItems, actionTypes.reaction)));
 
                 return buttons;
@@ -769,7 +774,7 @@ export function initConfig() {
                 const buttons = [];
 
                 for (const [type, types] of Object.entries(itemTypes)) {
-                    const items = this.actor.items.filter((item) => types.includes(item.type) && checkActivationType(item, actionTypes.free) && !CoreHUD.DND5E.mainBarFeatures.includes(item.system.type?.value));
+                    const items = this.actor.items.filter((item) => types.includes(item.type) && checkActivationType(item, actionTypes.free) && !isMainBarItem(item, CoreHUD.DND5E));
                     if (!items.length) continue;
                     if (type === "spell") {
                         const itemsWithCorrectActionTypeAsMainActivity = items.filter(item => actionTypes.free.includes(getActivationType(item)));
@@ -784,7 +789,7 @@ export function initConfig() {
                     if (button.hasContents) buttons.push(button);
                 }
 
-                const barItems = this.actor.items.filter((item) => CoreHUD.DND5E.mainBarFeatures.includes(item.system.type?.value) && checkActivationType(item, actionTypes.free));
+                const barItems = this.actor.items.filter((item) => isMainBarItem(item, CoreHUD.DND5E) && checkActivationType(item, actionTypes.free));
                 buttons.push(...condenseItemButtons(expandActivities(barItems, actionTypes.free)));
 
                 return buttons;

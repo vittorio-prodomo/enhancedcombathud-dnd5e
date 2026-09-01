@@ -29,6 +29,20 @@ export function registerSettings() {
                 ui.ARGON.refresh()
             },
         },
+        showLimitedUseFeats: {
+            name: game.i18n.localize("enhancedcombathud-dnd5e.settings.showLimitedUseFeats.name"),
+            hint: game.i18n.localize("enhancedcombathud-dnd5e.settings.showLimitedUseFeats.hint"),
+            scope: "world",
+            config: true,
+            type: Boolean,
+            default: true,
+            onChange: (sett) => {
+                const cfg = ui.ARGON.constructor.DND5E;
+                cfg.limitedUseFeatSubtypes = (cfg.limitedUseFeatSubtypes ?? []).filter(i => i !== "origin");
+                if (sett) cfg.limitedUseFeatSubtypes.push("origin");
+                ui.ARGON.refresh()
+            },
+        },
         condenseClassActions: {
             name: game.i18n.localize("enhancedcombathud-dnd5e.settings.condenseClassActions.name"),
             hint: game.i18n.localize("enhancedcombathud-dnd5e.settings.condenseClassActions.hint"),

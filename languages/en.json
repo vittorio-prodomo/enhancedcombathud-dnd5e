@@ -21,6 +21,10 @@
                 "name": "Show Class Actions",
                 "hint": "Show class actions in the Main Action bars"
             },
+            "showLimitedUseFeats": {
+                "name": "Show Limited-Use Feats",
+                "hint": "Show origin feats that have a limited number of uses (e.g. Lucky) as buttons in the Main Action bars, like class actions, instead of inside the feats sub-menu"
+            },
             "condenseClassActions": {
                 "name": "Condense Class Actions",
                 "hint": "If 'Show Class Actions' is enabled, condense class actions in pairs to save space"
