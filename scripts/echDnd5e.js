@@ -1,4 +1,5 @@
 import { matchesActivationType } from "./automationOnly.mjs";
+import { activityButtonLabel, displayItemName } from "./buttonLabel.mjs";
 import { MODULE_ID } from "./main.js";
 import { getSetting } from "./settings.js";
 import { activityTargetCount, activityRanges, isPreparationChange, resolveOriginSheet } from "./sheetUseGate.mjs";
@@ -133,6 +134,12 @@ export function initConfig() {
         // buttons — see scripts/automationOnly.mjs (tested). Every panel gates through here.
         const checkActivationType = (itemOrActivity, activationTypes) => matchesActivationType(itemOrActivity, activationTypes);
 
+        // dnd5e's localized default activity names ("Use", "Save", "Attack", "Heal", …).
+        const genericActivityNames = () => [
+            ...Object.values(CONFIG.DND5E.activityTypes ?? {}).map(t => game.i18n.localize(t.documentClass?.metadata?.title ?? "")).filter(Boolean),
+            "Use"
+        ];
+
         const getActivationType = (item) => {
             if (!item?.system?.activities) {
                 return;
@@ -193,7 +200,7 @@ export function initConfig() {
             } else {
                 if (!item || !item.system) return;
 
-                title = item.name;
+                title = displayItemName(item.name);
                 description = item.system.identified ? item.system.description.value : item.system.description.unidentified ?? item.system.description.value;
                 itemType = item.type;
                 target = item.labels?.target || "-";
@@ -924,20 +931,13 @@ export function initConfig() {
             }
 
             get label() {
-                if(!this.isActivity) return super.label;
-                // The " (Item Name)" suffix exists to disambiguate generic activity
-                // names ("Healing", "Attack"). Skip it when the activity name already
-                // identifies its item — it contains the item name, or shares a
-                // significant word with it ("Summon Companion" on "Primal Companion").
-                const activityName = this.activity.name ?? "";
-                if (activityName.includes(this.item.name)) return activityName;
-                // A shared STEM counts too ("Spend Luck Point" on "Lucky", queue T212 follow-up):
-                // one word being a prefix of the other, both at least 4 letters.
-                const itemWords = this.item.name.toLowerCase().split(/\s+/).filter(w => w.length >= 4);
-                const shared = activityName.toLowerCase().split(/\s+/).some(w => w.length >= 4
-                    && itemWords.some(iw => iw === w || iw.startsWith(w) || w.startsWith(iw)));
-                if (shared) return activityName;
-                return activityName + ` (${this.item.name})`;
+                // FORK (Vittorio, 2026-09-06): no "Use (…)" / "Save (…)" wrappers, no
+                // "Maneuver: " prefix — see scripts/buttonLabel.mjs (tested). A generic
+                // activity name ("Use", "Save", "Heal", …: dnd5e's own type titles) shows the
+                // item's name; a self-identifying one stands alone (the T212 stem rule); a
+                // distinct one reads "Item: Activity".
+                if(!this.isActivity) return displayItemName(super.label);
+                return activityButtonLabel({ activityName: this.activity.name ?? "", itemName: this.item.name, genericNames: genericActivityNames() });
             }
 
             get targets() {
