@@ -1,3 +1,4 @@
+import { matchesActivationType } from "./automationOnly.mjs";
 import { MODULE_ID } from "./main.js";
 import { getSetting } from "./settings.js";
 import { activityTargetCount, activityRanges, isPreparationChange, resolveOriginSheet } from "./sheetUseGate.mjs";
@@ -128,15 +129,9 @@ export function initConfig() {
             return [...weapons, ...nonWeapons];
         }
 
-        const checkActivationType = (itemOrActivity, activationTypes) => {
-            if (itemOrActivity.activation?.type) return activationTypes.includes(itemOrActivity.activation.type);
-            if (!itemOrActivity?.system?.activities) {
-                return;
-            }
-            for (const activity of Array.from(itemOrActivity.system.activities)) {
-                if(activationTypes.includes(activity.activation?.type)) return true;
-            }
-        }
+        // FORK (T225 follow-up, 2026-09-06): midi's `automationOnly` activities are never
+        // buttons — see scripts/automationOnly.mjs (tested). Every panel gates through here.
+        const checkActivationType = (itemOrActivity, activationTypes) => matchesActivationType(itemOrActivity, activationTypes);
 
         const getActivationType = (item) => {
             if (!item?.system?.activities) {
