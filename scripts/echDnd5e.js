@@ -1,5 +1,6 @@
 import { matchesActivationType } from "./automationOnly.mjs";
 import { activityButtonLabel, displayItemName } from "./buttonLabel.mjs";
+import { poolBadge } from "./poolBadge.mjs";
 import { MODULE_ID } from "./main.js";
 import { getSetting } from "./settings.js";
 import { activityTargetCount, activityRanges, isPreparationChange, resolveOriginSheet } from "./sheetUseGate.mjs";
@@ -1056,6 +1057,10 @@ export function initConfig() {
             get quantity() {
                 if(!this.item) return null;
                 if (this.item.system.uses?.max) return this.item.system.uses.max - this.item.system.uses.spent;
+                // FORK (Vittorio, 2026-09-06): a maneuver spent by CPR's driver carries no
+                // consumption target — show its class pool anyway (display-only, see poolBadge.mjs).
+                const pooled = poolBadge(this.item, this.activity, this.actor?.items?.contents ?? []);
+                if (pooled !== null) return pooled;
                 if (!this.activity) return null;
                 const showQuantityItemTypes = ["consumable"];
                 const consumeType = this.activity?.consume?.type;
