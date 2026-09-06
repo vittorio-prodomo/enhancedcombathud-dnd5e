@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { buttonActivities, isAutomationOnlyActivity, matchesActivationType } from "./automationOnly.mjs";
+import { buttonActivities, isAutomationOnlyActivity, isRiderActivity, matchesActivationType } from "./automationOnly.mjs";
 
 const act = (type, automationOnly = false) => ({ activation: { type }, midiProperties: { automationOnly } });
 const item = (...activities) => ({ system: { activities } });
@@ -25,6 +25,22 @@ test("a plain activity keeps the old behaviour; an item with no activities answe
   assert.equal(matchesActivationType(act("reaction"), ["action"]), false);
   assert.equal(matchesActivationType({ system: {} }, ["action"]), undefined);
   assert.equal(matchesActivationType(item(act("bonus")), ["action"]), false);
+});
+
+test("a rider activity is never a button, and comes back once its item unhides it (T216 residue)", () => {
+  const withRider = { flags: { dnd5e: { riders: { activity: ["move"] } } } };
+  const move = { id: "move", activation: { type: "bonus" }, midiProperties: { automationOnly: false }, item: withRider };
+  const cast = { id: "cast", activation: { type: "action" }, midiProperties: { automationOnly: false }, item: withRider };
+  assert.equal(isRiderActivity(move), true, "listed in flags.dnd5e.riders.activity");
+  assert.equal(matchesActivationType(move, ["bonus"]), false, "Flaming Sphere: Move with no sphere out");
+  assert.equal(matchesActivationType(cast, ["action"]), true, "the cast itself still shows");
+  assert.equal(matchesActivationType({ system: { activities: [cast, move] } }, ["bonus"]), false, "the item has no bonus button while Move is parked");
+  // CPR unhides by removing the id from the flag — the same activity then counts
+  const unhidden = { ...move, item: { flags: { dnd5e: { riders: { activity: [] } } } } };
+  assert.equal(matchesActivationType(unhidden, ["bonus"]), true);
+  // a live document exposes the getter; it wins over the flag
+  assert.equal(matchesActivationType({ ...move, isRider: false }, ["bonus"]), true);
+  assert.equal(matchesActivationType({ activation: { type: "action" }, isRider: true }, ["action"]), false);
 });
 
 test("activities may arrive as a Map/Collection or a plain object", () => {
