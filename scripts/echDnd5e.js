@@ -171,16 +171,21 @@ export function initConfig() {
         const mainBarFeatures = [];
         // T212 follow-up: feat SUBTYPES whose limited-use items sit on the bar (see mainBarItems.mjs).
         const limitedUseFeatSubtypes = [];
+        const limitedUseFeatureTypes = [];
 
         if (game.settings.get(MODULE_ID, "showWeaponsItems")) itemTypes.consumable.unshift("weapon");
         if (game.settings.get(MODULE_ID, "showClassActions")) mainBarFeatures.push("class");
         if (game.settings.get(MODULE_ID, "showLimitedUseFeats")) limitedUseFeatSubtypes.push("origin");
+        // ⚠️ Species features carry type.value "race" with an EMPTY subtype, so they need the
+        // type-level list, not the subtype list (Adrenaline Rush was invisible via subtype).
+        if (game.settings.get(MODULE_ID, "showLimitedUseSpecies")) limitedUseFeatureTypes.push("race");
 
         CoreHUD.DND5E = {
             actionTypes,
             itemTypes,
             mainBarFeatures,
             limitedUseFeatSubtypes,
+            limitedUseFeatureTypes,
             ECHItems,
         };
 

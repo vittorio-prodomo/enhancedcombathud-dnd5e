@@ -49,3 +49,11 @@ test('a uses max of 0 is not a pool', () => {
 test('a missing item is simply not on the bar', () => {
     assert.equal(isMainBarItem(undefined, ON), false);
 });
+
+const species = (max, over = {}) => ({ type: 'feat', system: { type: { value: 'race', subtype: '' }, uses: { max } }, ...over });
+test('a limited-use species feature reaches the bar via the type-level list (Adrenaline Rush)', () => {
+    const ON = { mainBarFeatures: ['class'], limitedUseFeatSubtypes: ['origin'], limitedUseFeatureTypes: ['race'] };
+    assert.equal(isMainBarItem(species(2), ON), true);
+    assert.equal(isMainBarItem(species(''), ON), false, 'a species feature with no pool stays off');
+    assert.equal(isMainBarItem(species(2), { mainBarFeatures: [], limitedUseFeatSubtypes: [], limitedUseFeatureTypes: [] }), false, 'setting off');
+});

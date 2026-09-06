@@ -43,6 +43,20 @@ export function registerSettings() {
                 ui.ARGON.refresh()
             },
         },
+        showLimitedUseSpecies: {
+            name: game.i18n.localize("enhancedcombathud-dnd5e.settings.showLimitedUseSpecies.name"),
+            hint: game.i18n.localize("enhancedcombathud-dnd5e.settings.showLimitedUseSpecies.hint"),
+            scope: "world",
+            config: true,
+            type: Boolean,
+            default: true,
+            onChange: (sett) => {
+                const cfg = ui.ARGON.constructor.DND5E;
+                cfg.limitedUseFeatureTypes = (cfg.limitedUseFeatureTypes ?? []).filter(i => i !== "race");
+                if (sett) cfg.limitedUseFeatureTypes.push("race");
+                ui.ARGON.refresh()
+            },
+        },
         condenseClassActions: {
             name: game.i18n.localize("enhancedcombathud-dnd5e.settings.condenseClassActions.name"),
             hint: game.i18n.localize("enhancedcombathud-dnd5e.settings.condenseClassActions.hint"),

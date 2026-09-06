@@ -19,10 +19,14 @@ export function hasLimitedUses(item) {
     return Number(s) !== 0;
 }
 
-export function isMainBarItem(item, { mainBarFeatures = [], limitedUseFeatSubtypes = [] } = {}) {
+export function isMainBarItem(item, { mainBarFeatures = [], limitedUseFeatSubtypes = [], limitedUseFeatureTypes = [] } = {}) {
     if (!item) return false;
     const typeValue = item.system?.type?.value;
     if (typeValue !== undefined && mainBarFeatures.includes(typeValue)) return true;
+    // A whole feature CATEGORY (type.value) promoted only when it has a uses pool — species
+    // features (type.value "race", subtype empty: Adrenaline Rush), the twin of the origin-feat
+    // subtype rule below. Keyed on type.value because racial features carry no subtype.
+    if (typeValue !== undefined && limitedUseFeatureTypes.includes(typeValue)) return hasLimitedUses(item);
     if (item.type !== "feat" || typeValue !== "feat") return false;
     const subtype = item.system?.type?.subtype;
     if (!subtype || !limitedUseFeatSubtypes.includes(subtype)) return false;
