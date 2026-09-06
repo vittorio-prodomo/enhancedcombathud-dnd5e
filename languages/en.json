@@ -21,6 +21,10 @@
                 "name": "Show Class Actions",
                 "hint": "Show class actions in the Main Action bars"
             },
+            "reminderItems": {
+                "name": "Reminder buttons (pool features)",
+                "hint": "Comma-separated feature identifiers (e.g. combat-superiority). Each listed feature that has a uses pool gets a button on the Main Action bar showing the remaining uses; clicking it only posts the feature's chat card."
+            },
             "showLimitedUseFeats": {
                 "name": "Show Limited-Use Feats",
                 "hint": "Show origin feats that have a limited number of uses (e.g. Lucky) as buttons in the Main Action bars, like class actions, instead of inside the feats sub-menu"

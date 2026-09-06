@@ -29,6 +29,16 @@ export function registerSettings() {
                 ui.ARGON.refresh()
             },
         },
+        // FORK (2026-09-06): "reminder" buttons for pool features with no activity (Combat Superiority).
+        reminderItems: {
+            name: game.i18n.localize("enhancedcombathud-dnd5e.settings.reminderItems.name"),
+            hint: game.i18n.localize("enhancedcombathud-dnd5e.settings.reminderItems.hint"),
+            scope: "world",
+            config: true,
+            type: String,
+            default: "combat-superiority",
+            onChange: () => ui.ARGON.refresh(),
+        },
         showLimitedUseFeats: {
             name: game.i18n.localize("enhancedcombathud-dnd5e.settings.showLimitedUseFeats.name"),
             hint: game.i18n.localize("enhancedcombathud-dnd5e.settings.showLimitedUseFeats.hint"),
