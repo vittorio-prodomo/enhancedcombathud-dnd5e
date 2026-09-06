@@ -1,6 +1,5 @@
 import { matchesActivationType } from "./automationOnly.mjs";
 import { activityButtonLabel, displayItemName } from "./buttonLabel.mjs";
-import { isReminderItem, parseIdentifierList as parseReminderList, remainingUses } from "./reminderButtons.mjs";
 import { MODULE_ID } from "./main.js";
 import { getSetting } from "./settings.js";
 import { activityTargetCount, activityRanges, isPreparationChange, resolveOriginSheet } from "./sheetUseGate.mjs";
@@ -676,8 +675,6 @@ export function initConfig() {
 
                 const barItems = this.actor.items.filter((item) => isMainBarItem(item, CoreHUD.DND5E) && checkActivationType(item, actionTypes.action));
                 buttons.push(...condenseItemButtons(expandActivities(barItems, actionTypes.action)));
-                // FORK (2026-09-06): reminder buttons — pool features with nothing to click (Combat Superiority).
-                buttons.push(...reminderButtons(this.actor));
 
                 return buttons.filter((button) => button.hasContents || button.items == undefined || button.items.length);
             }
@@ -1087,52 +1084,6 @@ export function initConfig() {
                 }
                 return null;
             }
-        }
-
-        // FORK (Vittorio, 2026-09-06): a reminder of a uses pool, not an action — Combat
-        // Superiority's dice are spent by the maneuvers (through CPR), so the item has no
-        // activity and would never become a button. See scripts/reminderButtons.mjs.
-        class DND5eReminderButton extends DND5eItemButton {
-            constructor({ item }) {
-                super({ item });
-            }
-
-            get isActivity() {
-                return false;
-            }
-
-            get activity() {
-                return undefined;
-            }
-
-            get label() {
-                return displayItemName(this.item?.name);
-            }
-
-            get quantity() {
-                return remainingUses(this.item);
-            }
-
-            get hasContents() {
-                return true;
-            }
-
-            async _onLeftClick(event) {
-                // No use, no consumption: just the card that explains the feature.
-                await this.item?.displayCard?.({ event });
-            }
-
-            async getTooltipData() {
-                return getTooltipDetails(this.item);
-            }
-        }
-
-        function reminderButtons(actor) {
-            let raw = "";
-            try { raw = game.settings.get(MODULE_ID, "reminderItems"); } catch (e) { raw = ""; }
-            const registry = parseReminderList(raw);
-            if (!registry.size) return [];
-            return actor.items.filter((item) => isReminderItem(item, registry)).map((item) => new DND5eReminderButton({ item }));
         }
 
         class DND5eButtonPanelButton extends ARGON.MAIN.BUTTONS.ButtonPanelButton {
