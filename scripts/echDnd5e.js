@@ -1097,13 +1097,6 @@ export function initConfig() {
                 super({ item });
             }
 
-            // ⚠️ Argon resolves a component's template from its PARENT class name
-            // (`component.js` `get template()`), so a second-level subclass would ask
-            // for DND5eItemButton.hbs, which does not exist — the tile rendered empty.
-            get template() {
-                return "modules/enhancedcombathud/templates/partials/ItemButton.hbs";
-            }
-
             get isActivity() {
                 return false;
             }
